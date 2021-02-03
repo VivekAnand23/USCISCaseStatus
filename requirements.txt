@@ -1,0 +1,3 @@
+mechanize
+requests_html
+bs4
