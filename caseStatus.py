@@ -1,11 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
+import configparser
+
+config = configparser.ConfigParser()
+config.read('config.properties')
+config.sections();
 
 # URL to get the Case Status
-CASE_STATUS_URL = 'https://egov.uscis.gov/casestatus/mycasestatus.do'
-NUMBER_OF_RECORDS = 50
-SRC_START_NUMBER = 2190098000
-MSC_START_NUMBER = 2190720000
+CASE_STATUS_URL = config['COMMON']['CASE_STATUS_URL']
+NUMBER_OF_RECORDS = int(config['COMMON']['NUMBER_OF_RECORDS'])
 
 # Get the Status of the Case by Receipt Number
 def getAppStatus(applicationNumber):
@@ -33,30 +36,35 @@ def getAppStatus(applicationNumber):
 
   # Prepare Response
   record = (form + '; ' + status + '; ' + date)
-  print(record)
 
   return record
 
+# Exception Counter
+counter = 0
+
 # Get Status for a Service Center and Application Number
 def getStatusForReceiptNumber(serviceCenter, receiptStartNumber):
+  global counter
   for index in range(NUMBER_OF_RECORDS):
-    appReceiptNumber = serviceCenter + str(receiptStartNumber + index + 1)
+    appReceiptNumber = serviceCenter + str(receiptStartNumber + (index * 1) + 1)
     try:
       result = appReceiptNumber + "; " + getAppStatus(appReceiptNumber)
+      print(result)
       with open('result.csv', 'a', encoding='utf-8') as resultFile:
         resultFile.write(result + '\n')
     except:
-      print('----- DONE -----')
-      break
+      counter = counter + 1
+      if counter > 3:
+        break
+      else:
+        counter = 0
+  print('----- DONE -----', '(', serviceCenter, ')')
+  return
 
-# Get SRC Application Status
-def srcApplications():
-  getStatusForReceiptNumber('SRC', SRC_START_NUMBER)
-
-# Get MSC Application Status
-def mscApplications():
-  getStatusForReceiptNumber('MSC', MSC_START_NUMBER)
-
-#####################
 # MAIN
-srcApplications()
+def main():
+  for key in config['SERVICE.CENTERS']:
+    getStatusForReceiptNumber(key.upper(), config['SERVICE.CENTERS'].getint(key))
+  return
+
+main()
