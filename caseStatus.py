@@ -11,7 +11,7 @@ CASE_STATUS_URL = config['COMMON']['CASE_STATUS_URL']
 NUMBER_OF_RECORDS = int(config['COMMON']['NUMBER_OF_RECORDS'])
 
 # Get the Status of the Case by Receipt Number
-def getAppStatus(applicationNumber):
+def getAppStatus(applicationNumber) -> str:
   # Prepare Payload
   payload = {'appReceiptNum': applicationNumber}
   # Make the request call
@@ -55,9 +55,8 @@ def getStatusForReceiptNumber(serviceCenter, receiptStartNumber):
     except:
       counter = counter + 1
       if counter > 3:
-        break
-      else:
         counter = 0
+        break
   print('----- DONE -----', '(', serviceCenter, ')')
   return
 
