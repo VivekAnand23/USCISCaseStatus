@@ -2,3 +2,6 @@
 .vscode/settings.json
 downloaded.html
 result.csv
+db/__pycache__/configure.cpython-39.pyc
+__pycache__/caseStatus.cpython-39.pyc
+.gitignore

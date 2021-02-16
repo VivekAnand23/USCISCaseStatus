@@ -1,22 +1,17 @@
 import requests
 from bs4 import BeautifulSoup
-import configparser
+import traceback
 
-config = configparser.ConfigParser()
-config.read('config.properties')
-config.sections();
-
-# URL to get the Case Status
-CASE_STATUS_URL = config['COMMON']['CASE_STATUS_URL']
-NUMBER_OF_RECORDS = int(config['COMMON']['NUMBER_OF_RECORDS'])
+import configurationParser as CP
+import db.dbServiceCenter as SrcCtr
 
 # Get the Status of the Case by Receipt Number
-def getAppStatus(applicationNumber) -> str:
+def getAppStatus(applicationNumber) -> list:
   # Prepare Payload
   payload = {'appReceiptNum': applicationNumber}
-  # Make the request call
-  caseResultHTMLResponse = requests.post(CASE_STATUS_URL, payload)
 
+  # Make the request call
+  caseResultHTMLResponse = requests.post(CP.CASE_STATUS_URL, payload)
   soup = BeautifulSoup(caseResultHTMLResponse.text, features="lxml")
 
   # Write the response in a temporary file
@@ -35,7 +30,7 @@ def getAppStatus(applicationNumber) -> str:
   form = statusParts[2].split('your Form ')[1]
 
   # Prepare Response
-  record = (form + '; ' + status + '; ' + date)
+  record = [ form, status, date ]
 
   return record
 
@@ -45,25 +40,19 @@ counter = 0
 # Get Status for a Service Center and Application Number
 def getStatusForReceiptNumber(serviceCenter, receiptStartNumber):
   global counter
-  for index in range(NUMBER_OF_RECORDS):
+  for index in range(CP.NUMBER_OF_RECORDS):
     appReceiptNumber = serviceCenter + str(receiptStartNumber + (index * 1) + 1)
     try:
-      result = appReceiptNumber + "; " + getAppStatus(appReceiptNumber)
-      print(result)
-      with open('result.csv', 'a', encoding='utf-8') as resultFile:
-        resultFile.write(result + '\n')
-    except:
+      result = getAppStatus(appReceiptNumber)
+      result.insert(0, appReceiptNumber)
+
+      # Insert in DB
+      SrcCtr.insertReceiptStatus(result)
+    except Exception as ex:
+      traceback.print_exception(type(ex), ex, ex.__traceback__)
       counter = counter + 1
       if counter > 3:
         counter = 0
         break
   print('----- DONE -----', '(', serviceCenter, ')')
   return
-
-# MAIN
-def main():
-  for key in config['SERVICE.CENTERS']:
-    getStatusForReceiptNumber(key.upper(), config['SERVICE.CENTERS'].getint(key))
-  return
-
-main()
